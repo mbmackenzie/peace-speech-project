@@ -1,4 +1,11 @@
-data/*/*
+
+data/raw/*[.csv, .txt]
+
+data/clean/*[.csv, .txt]
+data/clean/*/*[.csv, .txt]
+data/clean/*/*/*[.csv, .txt]
+
+data/*/*/
 
 .vscode*
 .DS_Store
