@@ -9,6 +9,8 @@ data/clean/*/*/*[.csv, .txt]
 data/*/*/
 
 *.csv
+!data/file_lookup.csv
+!data/summary_stats.csv
 
 .vscode*
 .DS_Store

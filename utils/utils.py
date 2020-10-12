@@ -30,6 +30,7 @@ SOURCES_COLUMNS = [
     "title"
 ]
 
+
 # PUBLIC FUNCTIONS
 
 
@@ -53,7 +54,7 @@ def get_text_files(folder="*") -> List[str]:
     return glob.glob(os.path.join(RAW_DATA_FOLDER, folder, "*.txt"))
 
 
-def read_sources_file(file_path: str) -> pd.DataFrame:
+def read_sources_file(file_path: str, clean=True) -> pd.DataFrame:
     # data is separated by 1 or 2 tabs
     sources = pd.read_csv(
         file_path, sep="\t{1,2}", header=None, encoding="ISO-8859-1", engine='python'
@@ -61,8 +62,8 @@ def read_sources_file(file_path: str) -> pd.DataFrame:
 
     sources.columns = SOURCES_COLUMNS
 
-    # date column -> pandas.DateTime
-    sources["date"] = pd.to_datetime(sources["date"], format="%y-%m-%d")
+    if clean:
+        _clean_sources_file(sources)
 
     return sources
 
@@ -127,6 +128,7 @@ def export_report(report: pd.Series, path=None) -> str:
     file = get_report_name(report)
 
     full_path = f"{path + '/' if path else ''}{folder}"
+
     # create the folder, if it doesn't already exist
     pathlib.Path(full_path).mkdir(parents=True, exist_ok=True)
 
@@ -134,8 +136,10 @@ def export_report(report: pd.Series, path=None) -> str:
     with codecs.open(f"{full_path}/{file}", "w", "ISO-8859-1") as f:
         if not pd.isna(report.text):
             title = report.title if not pd.isna(report.title) else ""
+            website = report.website if not pd.isna(report.title) else ""
             url = report.url if not pd.isna(report.url) else ""
-            f.writelines([title, "\n", url, "\n\n", report.text])
+            f.writelines([title, "\n", website, "\n",
+                          url, "\n\n", report.text])
         f.close()
 
     return f"{folder}/{file}"
@@ -143,13 +147,16 @@ def export_report(report: pd.Series, path=None) -> str:
 
 def get_basic_summary_stats(df: pd.DataFrame) -> Tuple[int, int, int]:
     num_articles = df.shape[0]
-    total_words = df["n_words"].sum()
+    total_words = int(df["n_words"].astype(float).sum(skipna=True))
     num_sources = df["website"].unique().shape[0]
 
     return num_sources, num_articles, total_words
 
 
 # PRIVATE FUNCTIONS
+
+def _get_country_or_na(country_code: str) -> str:
+    return country_code if re.match("[A-Za-z]{2}", country_code) else pd.NA
 
 
 def _get_last_path_element(path: str):
@@ -189,3 +196,27 @@ def _match_file(files: List[str], year: int, month: int, country: int, path_clea
 
         if format_year(year) == f_year and format_month(month) == f_month and country.lower() == f_country.lower():
             return file
+
+
+def _check_sources_needs_shift(sources: pd.DataFrame) -> bool:
+    possible_shift = sources[sources.title.isna()]
+    return not pd.api.types.is_integer_dtype(possible_shift.n_words)
+
+
+def _shift_sources(sources: pd.DataFrame):
+    shift_idx = sources[sources.title.isna()].copy().index
+    sources.iloc[shift_idx, 1:] = sources.iloc[shift_idx, 1:].shift(axis=1)
+
+
+def _clean_sources_file(sources: pd.DataFrame):
+    # country column only allows 2 char country codes
+    sources["country"] = sources.country.apply(_get_country_or_na)
+
+    # is there a column parse error?
+    if _check_sources_needs_shift(sources):
+        _shift_sources(sources)
+
+    # date n_words -> int/nan
+
+    # date column -> pandas.DateTime
+    sources["date"] = pd.to_datetime(sources["date"], format="%y-%m-%d")
