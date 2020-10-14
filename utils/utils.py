@@ -9,6 +9,8 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
+from slugify import slugify
+
 # from utils.clean import clean_text
 
 
@@ -99,11 +101,15 @@ def read_text_file(file_path: str) -> pd.DataFrame:
 
 def get_report_folder(report: pd.Series) -> str:
     """Get the folder a report belongs in as COUNTRY/YEAR"""
+    publisher = slugify(
+        report.website if not pd.isna(report.website) else "No Publisher"
+    )
+
     if not pd.isna(report.date):
         year = report.date.strftime("%Y")
-        return f"{report.country}/{year}"
+        return os.path.join(report.country, publisher, year)
     else:
-        return f"{report.country}"
+        os.path.join(report.country, publisher)
 
 
 def get_report_name(report: pd.Series) -> str:
@@ -115,7 +121,7 @@ def get_report_name(report: pd.Series) -> str:
         return f"{report.id}_{report.country}.txt"
 
 
-def export_report(report: pd.Series, path=None) -> str:
+def export_report(report: pd.Series, path=None, execute=True) -> str:
     """Export a report to the correct folder with the correct name
 
     Keyword Arguments:
@@ -125,32 +131,35 @@ def export_report(report: pd.Series, path=None) -> str:
         the output path FOLDER/FILE.txt, excluding the path argument.
     """
     folder = get_report_folder(report)
-    file = get_report_name(report)
+    file_name = get_report_name(report)
 
-    full_path = f"{path + '/' if path else ''}{folder}"
+    full_path = os.path.join(path, folder) if path else folder
 
     # create the folder, if it doesn't already exist
     pathlib.Path(full_path).mkdir(parents=True, exist_ok=True)
 
-    # write the file
-    with codecs.open(f"{full_path}/{file}", "w", "ISO-8859-1") as f:
-        if not pd.isna(report.text):
-            title = report.title if not pd.isna(report.title) else ""
-            website = report.website if not pd.isna(report.title) else ""
-            url = report.url if not pd.isna(report.url) else ""
-            f.writelines([title, "\n", website, "\n",
-                          url, "\n\n", report.text])
-        f.close()
+    # write the file if execute
+    if execute:
+        with codecs.open(f"{full_path}/{file_name}", "w", "ISO-8859-1") as f:
+            if not pd.isna(report.text):
+                id_number = str(report.id) if not pd.isna(report.id) else ""
+                title = report.title if not pd.isna(report.title) else ""
+                website = report.website if not pd.isna(report.title) else ""
+                url = report.url if not pd.isna(report.url) else ""
+                f.writelines([id_number, "\n",
+                              title, "\n",
+                              website, "\n",
+                              url, "\n\n", report.text])
+            f.close()
 
-    return f"{folder}/{file}"
+    return os.path.join(folder, file_name)
 
 
 def get_basic_summary_stats(df: pd.DataFrame) -> Tuple[int, int, int]:
     num_articles = df.shape[0]
     total_words = int(df["n_words"].astype(float).sum(skipna=True))
-    num_sources = df["website"].unique().shape[0]
 
-    return num_sources, num_articles, total_words
+    return num_articles, total_words
 
 
 # PRIVATE FUNCTIONS
@@ -216,7 +225,8 @@ def _clean_sources_file(sources: pd.DataFrame):
     if _check_sources_needs_shift(sources):
         _shift_sources(sources)
 
-    # date n_words -> int/nan
+    # n_words date-> int/nan
+    # TODO
 
     # date column -> pandas.DateTime
     sources["date"] = pd.to_datetime(sources["date"], format="%y-%m-%d")
