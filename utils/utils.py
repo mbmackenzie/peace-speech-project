@@ -225,6 +225,9 @@ def _clean_sources_file(sources: pd.DataFrame):
     if _check_sources_needs_shift(sources):
         _shift_sources(sources)
 
+    # strip website
+    sources["website"] = sources["website"].str.strip()
+
     # n_words date-> int/nan
     # TODO
 
