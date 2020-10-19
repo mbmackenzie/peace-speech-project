@@ -12,8 +12,11 @@ data/*/*/
 !data/file_lookup.csv
 !data/summary_stats.csv
 
+misc/cleaning_validation/*/
 .vscode*
 .DS_Store
+*.Rproj*
+*.Rhistory*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
