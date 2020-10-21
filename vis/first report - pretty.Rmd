@@ -1,0 +1,212 @@
+---
+title: "Pretty Vis for First Report"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(countrycode)
+
+theme_set(theme_gdocs())
+```
+
+```{r}
+data <- read_csv("data/summary_stats.csv")
+
+data.summary <- data %>%
+  group_by(country, year) %>%
+  summarise(tot_articles = sum(num_articles),
+            tot_words = sum(total_words)) %>%
+  mutate(sum_tot_articles = sum(tot_articles),
+         sum_tot_words = sum(tot_words)) %>%
+  ungroup() %>%
+  filter(sum_tot_articles > 100) %>%
+  mutate(avg_wpa = tot_words / tot_articles)
+  
+
+data.summary %>%
+  mutate(country = fct_lump(country, 9, w = sum_tot_articles)) %>%
+  group_by(country, year) %>%
+  summarise(tot_articles = sum(tot_articles)) %>%
+  mutate(sum_tot_articles = sum(tot_articles)) %>%
+  ungroup() %>%
+  mutate(display_num_articles = formatC(sum_tot_articles, format="f", big.mark=",", digits=0),
+         country_name = ifelse(country == "Other", "Other", countrycode(country, "iso2c", "country.name")),
+         display = glue::glue("{ country_name } ({ display_num_articles } articles)")) %>%
+  ggplot(aes(year, tot_articles, fill = display)) + 
+  geom_col(position = "dodge") + 
+  facet_wrap(~ fct_rev(fct_reorder(display, sum_tot_articles)), scales = "free_y", nrow = 2) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(title = "Top 10 countries with most articles", 
+       x = "Year",
+       y = "Number of Articles") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10))
+
+```
+
+```{r}
+bins <- c(0, 1, 2, 3, 5, 10, 25, 100, 500, 1000, Inf)
+labels <- c("1", "2", "3", "4-5", "6-10", "11-25", "26-100", "101-500", "501-1000", "1001+")
+
+data %>% 
+  filter(country != "UK", nchar(publisher) > 0) %>%
+  group_by(country, publisher) %>%
+  summarise(num_articles = sum(num_articles),
+            num_words = sum(total_words)) %>%
+  ungroup() %>%
+  mutate(num_articles_bin = cut(num_articles, breaks = bins, labels = labels)) %>%
+  group_by(num_articles_bin) %>%
+  summarise(num_publishers = n(), 
+            num_articles = sum(num_articles)) %>%
+  mutate(`Percent of Publishers` = num_publishers / sum(num_publishers), 
+         `Percent of Articles` = num_articles / sum(num_articles)) %>%
+  gather(metric, value, `Percent of Publishers`, `Percent of Articles`, -num_articles) %>%
+  ggplot(aes(num_articles_bin, value)) + 
+  geom_col() + 
+  facet_wrap(~ metric, nrow = 2, scales = "free_y") + 
+  scale_y_continuous(breaks = scales::pretty_breaks(), labels = scales::percent_format()) + 
+  labs(title = "Less than 10% of publishers contribute more than 80% of the data.", 
+       x = "Number of Articles Published by a Publisher")
+```
+
+```{r}
+data.big_pubs <- data %>% 
+  filter(country != "UK", nchar(publisher) > 0) %>%
+  group_by(country, publisher) %>%
+  summarise(pub_num_articles = sum(num_articles),
+            pub_num_words = sum(total_words)) %>%
+  ungroup() %>%
+  mutate(num_articles_bin = cut(pub_num_articles, breaks = bins, labels = labels)) %>%
+  filter(num_articles_bin == "1001+") %>%
+  left_join(data, by = c("country", "publisher"))
+
+data.big_pubs.summary <- data.big_pubs %>%
+  group_by(country, year) %>%
+  summarise(tot_articles = sum(num_articles),
+            tot_words = sum(total_words)) %>%
+  mutate(sum_tot_articles = sum(tot_articles),
+         sum_tot_words = sum(tot_words)) %>%
+  ungroup() %>%
+  mutate(avg_wpa = tot_words / tot_articles)
+
+data.big_pubs.summary %>%
+  mutate(country = fct_lump(country, 9, w = sum_tot_articles)) %>%
+  group_by(country, year) %>%
+  summarise(tot_articles = sum(tot_articles)) %>%
+  mutate(sum_tot_articles = sum(tot_articles)) %>%
+  ungroup() %>%
+  mutate(display_num_articles = formatC(sum_tot_articles, format="f", big.mark=",", digits=0),
+         country_name = ifelse(country == "Other", "Other", countrycode(country, "iso2c", "country.name")),
+         display = glue::glue("{ country_name } ({ display_num_articles } articles)")) %>%
+  ggplot(aes(year, tot_articles, fill = display)) + 
+  geom_col(position = "dodge") + 
+  facet_wrap(~ fct_rev(fct_reorder(display, sum_tot_articles)), scales = "free_y", nrow = 2) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(title = "Top 10 countries with most articles", 
+       subtitle = "Only publishers with more than 1,000 articles published",
+       x = "Year",
+       y = "Number of Articles") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10))
+
+data.big_pubs.summary %>%
+  mutate(display_num_articles = formatC(sum_tot_articles, format="f", big.mark=",", digits=0),
+         country_name = ifelse(country == "Other", "Other", countrycode(country, "iso2c", "country.name")),
+         display = glue::glue("{ country_name } ({ display_num_articles } articles)")) %>%
+  ggplot(aes(year, tot_articles, fill = display)) + 
+  geom_col(position = "dodge") + 
+  facet_wrap(~ display, scales = "free_y") + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(title = "Number of articles from each country",
+       subtitle = "Only publishers with more than 1,000 articles published",
+       x = "Year",
+       y = "Number of Articles") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10))
+
+```
+
+```{r}
+data.big_pubs.summary %>%
+  mutate(country = fct_lump(country, 9, w = sum_tot_words)) %>%
+  group_by(country, year) %>%
+  summarise(tot_words = sum(tot_words)) %>%
+  mutate(sum_tot_words = sum(tot_words)) %>%
+  ungroup() %>%
+  mutate(display_num_words = formatC(sum_tot_words, format="f", big.mark=",", digits=0),
+         country_name = ifelse(country == "Other", "Other", countrycode(country, "iso2c", "country.name")),
+         display = glue::glue("{ country_name } ({ display_num_words } words)")) %>%
+  ggplot(aes(year, tot_words, fill = display)) + 
+  geom_col(position = "dodge") + 
+  facet_wrap(~ fct_rev(fct_reorder(display, sum_tot_words)), scales = "free_y", nrow = 2) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(title = "Top 10 countries with most words", 
+       subtitle = "Only publishers with more than 1,000 articles published",
+       x = "Year",
+       y = "Number of Words") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10))
+
+data.big_pubs.summary %>%
+  mutate(display_num_words = formatC(sum_tot_words, format="f", big.mark=",", digits=0),
+         country_name = ifelse(country == "Other", "Other", countrycode(country, "iso2c", "country.name")),
+         display = glue::glue("{ country_name } ({ display_num_words } words)")) %>%
+  ggplot(aes(year, tot_words, fill = display)) + 
+  geom_col(position = "dodge") + 
+  facet_wrap(~ fct_rev(fct_reorder(display, sum_tot_words)), scales = "free_y") + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(title = "Number of words per country", 
+       subtitle = "Only publishers with more than 1,000 articles published",
+       x = "Year",
+       y = "Number of Words") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10))
+```
+
+```{r}
+data.big_pubs.summary %>%
+  mutate(country_name = ifelse(country == "Other", "Other", countrycode(country, "iso2c", "country.name"))) %>%
+  ggplot(aes(year, avg_wpa, fill = country_name)) + 
+geom_col(position = "dodge") + 
+  facet_wrap(~ country_name, scales = "free_y") + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(title = "Average number of words per article", 
+       subtitle = "Only publishers with more than 1,000 articles published",
+       x = "Year",
+       y = "Average Number of Words per Article") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10))
+```
+
+```{r}
+data.big_pubs %>%
+  group_by(country, publisher) %>%
+  summarise(num_articles = sum(num_articles)) %>%
+  ungroup() %>%
+  mutate(country_name = countrycode(country, "iso2c", "country.name")) %>%
+  ggplot(aes(num_articles, fct_reorder(country_name, num_articles))) + 
+  geom_boxplot() + 
+  scale_x_log10() + 
+  labs(title = "How many articles is a typical large publisher publishing?",
+       subtitle = "Aggregated over 2010-2020; only publishers with more than 1,000 articles published",
+       x = "Number of Articles Published (log scale)",
+       y = "")
+```
+
+```{r}
+countries.peaceful <- c("New Zealand", "Canada", "Ireland", "Australia", "UK", "Singapore")
+countries.non_eaceful <- c("Kenya", "Zimbabwe", "Bangladesh", "Pakistan", "Nigeria", "Tanzania")
+
+data.big_pubs %>%
+  distinct(country) %>%
+  
+```
+

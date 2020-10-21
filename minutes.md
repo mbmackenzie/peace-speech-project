@@ -39,5 +39,15 @@
   - What are the next steps?
     - Word Frequencies
   - Inconsistencies between source/text files... Need to capture as many edge cases as possible
-- **New Team Captain: Hojin**
+- **New Team Captain: JJ**
 - **Next Week Presenter: Tae Yoon**
+
+## 10/21/2020 - Biweekly Team
+
+- First draft submitted
+- Big question: data size
+  - what is the expectation for the volumne of data we use?
+  - There are 20 million files, it will take weeks to preproccess it all.
+  - Phillipe: subsample later years to match volume from earlier year.
+- Sensitivity analysis around noise removal?
+  - don't need rigorous statistics, but maybe an analysis of one publisher. Include top ngrams removed in report. Sanity check that we are not overkilling words.
