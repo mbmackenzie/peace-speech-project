@@ -18,7 +18,8 @@ theme_set(theme_gdocs())
 ```
 
 ```{r}
-data <- read_csv("data/summary_stats.csv")
+data <- read_csv("data/summary_stats.csv") %>%
+  mutate(country = ifelse(country == "UK", "GB", country))
 
 data.summary <- data %>%
   group_by(country, year) %>%
@@ -27,7 +28,6 @@ data.summary <- data %>%
   mutate(sum_tot_articles = sum(tot_articles),
          sum_tot_words = sum(tot_words)) %>%
   ungroup() %>%
-  filter(sum_tot_articles > 100) %>%
   mutate(avg_wpa = tot_words / tot_articles)
   
 
@@ -79,7 +79,7 @@ data %>%
 
 ```{r}
 data.big_pubs <- data %>% 
-  filter(country != "UK", nchar(publisher) > 0) %>%
+  filter(nchar(publisher) > 0) %>%
   group_by(country, publisher) %>%
   summarise(pub_num_articles = sum(num_articles),
             pub_num_words = sum(total_words)) %>%
@@ -96,6 +96,17 @@ data.big_pubs.summary <- data.big_pubs %>%
          sum_tot_words = sum(tot_words)) %>%
   ungroup() %>%
   mutate(avg_wpa = tot_words / tot_articles)
+
+data.big_pubs.summary %>%
+  ggplot(aes(fct_reorder(country, tot_articles), tot_articles, fill = factor(year))) + 
+  geom_col(position = "dodge") + 
+  scale_y_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) +
+  labs(title = "Number of articles from each country",
+       subtitle = "Only publishers with more than 1,000 articles published",
+       x = "Country",
+       y = "Number of Articles",
+       fill = "Year") + 
+  theme(axis.text.x = element_text(size = 10))
 
 data.big_pubs.summary %>%
   mutate(country = fct_lump(country, 9, w = sum_tot_articles)) %>%
@@ -132,9 +143,23 @@ data.big_pubs.summary %>%
   theme(legend.position = "none",
         axis.text.x = element_text(size = 10))
 
+
+
 ```
 
 ```{r}
+
+data.big_pubs.summary %>%
+  ggplot(aes(fct_reorder(country, tot_words), tot_words, fill = factor(year))) + 
+  geom_col(position = "dodge") + 
+  scale_y_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) +
+  labs(title = "Number of words from each country",
+       subtitle = "Only publishers with more than 1,000 articles published",
+       x = "Country",
+       y = "Number of Words",
+       fill = "Year") + 
+  theme(axis.text.x = element_text(size = 10))
+
 data.big_pubs.summary %>%
   mutate(country = fct_lump(country, 9, w = sum_tot_words)) %>%
   group_by(country, year) %>%
@@ -202,11 +227,80 @@ data.big_pubs %>%
 ```
 
 ```{r}
-countries.peaceful <- c("New Zealand", "Canada", "Ireland", "Australia", "UK", "Singapore")
-countries.non_eaceful <- c("Kenya", "Zimbabwe", "Bangladesh", "Pakistan", "Nigeria", "Tanzania")
+countries.peaceful <- c("New Zealand", "Canada", "Ireland", "Australia", "United Kingdom", "Singapore")
+countries.non_peaceful <- c("Kenya", "Zimbabwe", "Bangladesh", "Pakistan", "Nigeria", "Tanzania")
+
+get_society_cat <- Vectorize(function(country) {
+  if (country %in% countries.peaceful) {
+    return("Peaceful")
+  } else if (country %in% countries.non_peaceful) {
+    return("Non-Peaceful")
+  } else {
+    return("Neutral")
+  }
+})
 
 data.big_pubs %>%
   distinct(country) %>%
+  mutate(country_name = countrycode(country, "iso2c", "country.name"),
+         display = glue::glue("{ country_name } ({ country })"),
+         society = get_society_cat(country_name)) %>%
+  arrange(country)
+  
+data.big_pubs %>%
+  mutate(country_name = countrycode(country, "iso2c", "country.name"),
+         society = get_society_cat(country_name)) %>%
+  mutate(society = factor(society, c("Peaceful", "Neutral","Non-Peaceful"))) %>%
+  group_by(society) %>%
+  summarise(tot_articles = sum(num_articles)) %>%
+  ggplot(aes(society, tot_articles, fill = society)) + 
+  geom_col(position = "dodge") + 
+  scale_y_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) + 
+  scale_fill_manual(values = c("#6db7f7", "#36CB8A", "#FF5A59")) + 
+  labs(title = "Number of articles from each type of society",
+       subtitle = "Only publishers with more than 1,000 articles published",
+       x = "Year",
+       y = "Number of Articles") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10))
+
+data.big_pubs %>%
+  mutate(country_name = countrycode(country, "iso2c", "country.name"),
+         society = get_society_cat(country_name)) %>%
+  mutate(society = factor(society, c("Peaceful", "Neutral","Non-Peaceful"))) %>%
+  group_by(society, year) %>%
+  summarise(tot_articles = sum(num_articles)) %>%
+  ggplot(aes(year, tot_articles, fill = society)) + 
+  geom_col(position = "dodge") + 
+  facet_wrap(~ society) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  scale_y_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) +
+  scale_fill_manual(values = c("#6db7f7", "#36CB8A", "#FF5A59")) + 
+  labs(title = "Number of articles from each type of society",
+       subtitle = "Only publishers with more than 1,000 articles published",
+       x = "Year",
+       y = "Number of Articles") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10))
+
+data.big_pubs %>%
+  mutate(country_name = countrycode(country, "iso2c", "country.name"),
+         society = get_society_cat(country_name)) %>%
+  mutate(society = factor(society, c("Peaceful", "Neutral","Non-Peaceful"))) %>%
+  group_by(society, year) %>%
+  summarise(tot_articles = sum(num_articles)) %>%
+  ggplot(aes(year, tot_articles, color = society)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  scale_y_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) + 
+  scale_fill_manual(values = c("#6db7f7", "#36CB8A", "#FF5A59")) + 
+  labs(title = "Number of articles from each type of society",
+       subtitle = "Only publishers with more than 1,000 articles published",
+       x = "Year",
+       y = "Number of Articles") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10))
   
 ```
 
