@@ -304,3 +304,17 @@ data.big_pubs %>%
   
 ```
 
+```{r}
+sampling <- read_csv("misc/sampling_amounts.csv")
+
+sampling %>%
+  group_by(country, year) %>%
+  summarise(total_articles = sum(total_articles),
+            sampled_articles = sum(sampled_articles)) %>%
+  ungroup() %>%
+  ggplot(aes(year, fill = country)) + 
+  geom_col(aes(y = sampled_articles)) + 
+  facet_wrap(~ country, scales = "free_y")
+```
+
+
