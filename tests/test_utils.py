@@ -98,7 +98,18 @@ class TestPrivateUtilityFunctions(unittest.TestCase):
         folder = _match_folder(folders, year, month)
         self.assertEqual(folder, folders[-1])
 
-    def test__match_file(self):
+    def test__match_file__no_match(self):
+        year, month, country = 2020, 10, "US"
+        files = [
+            "text-20_07_US.txt",
+            "text_18-10_AU.txt",
+            "text-20-11-US.txt"
+        ]
+
+        file_name = _match_file(files, year, month, country)
+        self.assertIsNone(file_name)
+
+    def test__match_file__one_match(self):
         year, month, country = 2020, 10, "US"
         files = [
             "text-20_07_US.txt",
@@ -107,4 +118,18 @@ class TestPrivateUtilityFunctions(unittest.TestCase):
         ]
 
         file_name = _match_file(files, year, month, country)
-        self.assertEqual(file_name, files[-1])
+        self.assertTrue(isinstance(file_name, list))
+        self.assertEqual(file_name, [files[-1]])
+
+    def test__match_file__multiple_matches(self):
+        year, month, country = 2020, 10, "US"
+        files = [
+            "text-20_07_US.txt",
+            "text_18-10_AU.txt",
+            "text-20-10-US1.txt",
+            "text-20-10-us2.txt"
+        ]
+
+        file_names = _match_file(files, year, month, country)
+        self.assertTrue(isinstance(file_names, list))
+        self.assertEqual(file_names, files[-2:])

@@ -317,4 +317,72 @@ sampling %>%
   facet_wrap(~ country, scales = "free_y")
 ```
 
+```{r}
+sampling %>%
+  group_by(country, year) %>%
+  summarise(`Original` = sum(total_articles),
+            `Sampled` = sum(sampled_articles)) %>%
+  ungroup() %>%
+  filter(country == "US") %>%
+  gather(type, num_articles, `Original`, `Sampled`) %>%
+  ggplot(aes(year, num_articles)) + 
+  geom_col() + 
+  facet_wrap(~ type, scales = "free_y", nrow = 2) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  scale_y_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) + 
+  labs(title = "Comparison of counts of articles in the US", 
+       x = "Year", 
+       y = "Article Count")
+
+
+sampling %>%
+  filter(country == "US", year == 2016) %>%
+  mutate(`Original` = total_articles,
+         `Sampled` = sampled_articles) %>%
+  gather(type, num_articles, `Original`, `Sampled`) %>%
+  ggplot(aes(num_articles)) + 
+  geom_histogram(bins = 20) + 
+  facet_wrap(~ type, scales = "free", nrow = 2) + 
+  scale_x_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) +
+  scale_y_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) + 
+  labs(title = "Comparison of distibution of articles from publishers in the US, 2016",
+       x = "Number of Articles",
+       y = "Count")
+```
+
+```{r}
+sampled <- read_csv("data/sampled_articles.csv")
+
+sampled.errors <- sampled %>%
+  filter(!is.na(id)) %>%
+  group_by(country, year, publisher, total_articles, sampled_articles, articles_found) %>%
+  summarise(articles_copied = n()) %>%
+  ungroup() %>%
+  mutate(found_all_articles = total_articles == articles_found,
+         copied_correct_amount = sampled_articles == articles_copied)
+
+sampled.errors %>%
+  count(found_all_articles, copied_correct_amount) %>%
+  mutate(pct = n / sum(n))
+
+sampled.errors %>%
+  filter(articles_copied > sampled_articles)
+
+sampled %>%
+  filter(country == "AU", year == 2016, publisher == "9Honey") %>%
+  count(id)
+  View()
+  
+sampled %>%
+  group_by(id) %>%
+  mutate(duplicate_id = n() > 1) %>%
+  filter(duplicate_id) %>%
+  count(country, year, publisher)
+
+sampled %>% 
+  filter(country == "CA", year == 2013, publisher == "Victoria Times Colonist")
+```
+
+
+
 
