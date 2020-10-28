@@ -21,6 +21,7 @@ def clean_text(text: str) -> str:
 # CONSTANTS
 RAW_DATA_FOLDER = os.path.join("data", "raw")
 CLEAN_DATA_FOLDER = os.path.join("data", "clean")
+CLEAN_FULL_DATA_FOLDER = os.path.join("data", "clean_full")
 
 SOURCES_COLUMNS = [
     "id",
@@ -70,33 +71,51 @@ def read_sources_file(file_path: str, clean=True) -> pd.DataFrame:
     return sources
 
 
-def get_text_file_path(text_folders: List[str], year: int, month: int, country: str) -> str:
+def get_text_file_paths(text_folders: List[str], year: int, month: int, country: str) -> str:
     folder = _match_folder(text_folders, year, month,
                            path_cleaner=_get_last_path_element)
 
     text_files = get_text_files(folder=folder)
-    file_name = _match_file(text_files, year, month, country,
-                            path_cleaner=_get_last_path_element)
+    file_names = _match_file(text_files, year, month, country,
+                             path_cleaner=_get_last_path_element)
 
-    path = os.path.join(RAW_DATA_FOLDER, folder, file_name)
-    return path
+    if not file_names:
+        return None
+
+    return [os.path.join(RAW_DATA_FOLDER, folder, file_name)
+            for file_name in file_names]
 
 
 def read_text_file(file_path: str) -> pd.DataFrame:
     # find lines that start with @@, extract id and text from them
+    bad_lines = []
     with open(file_path, "r") as f:
-        text = pd.DataFrame(
-            [re.search("(\d+)\s(.*)", l[2:]).groups()
-             for l in f.readlines() if l.startswith("@@")],
-            columns=["id", "text"]
-        )
+        lines = f.readlines()
+
+        try:
+            text = pd.DataFrame(
+                [re.search(r"(\d+)\s(.*)", l[2:]).groups()
+                 for l in lines if l.startswith("@@")],
+                columns=["id", "text"]
+            )
+
+        except:
+            text = pd.DataFrame(
+                [re.search(r"(\d+)\s(.*)", l[2:]).groups()
+                 for l in lines if l.startswith("@@") and re.match(r"(\d+)\s(.*)", l[2:])],
+                columns=["id", "text"]
+            )
+
+            bad_lines = [l for l in lines
+                         if l.startswith("@@") and not re.match(r"(\d+)\s(.*)", l[2:])]
+
         f.close()
 
     # id should be an integer
     text["id"] = text["id"].astype(int)
     text["text"] = text["text"].apply(clean_text)
 
-    return text
+    return text, bad_lines
 
 
 def get_report_folder(report: pd.Series) -> str:
@@ -191,20 +210,28 @@ def _match_folder(folders: List[str], year: int, month: int, path_cleaner=None) 
             return folder
 
 
-def _match_file(files: List[str], year: int, month: int, country: int, path_cleaner=None) -> str:
-    for file in files:
-
+def _match_file(files: List[str], year: int, month: int, country: int, path_cleaner=None) -> List[str]:
+    matched_files = []
+    for text_file in files:
         if path_cleaner:
-            file = path_cleaner(file)
+            text_file = path_cleaner(text_file)
 
-        split_loc = _split_location(file)
+        split_loc = _split_location(text_file)
         if split_loc[0] == "text":
             f_year, f_month, f_country = split_loc[1:-1]
         else:
             f_year, f_month, f_country = split_loc[:-1]
 
+        if f_country[-1].isdigit():
+            f_country = f_country[:-1]
+
         if format_year(year) == f_year and format_month(month) == f_month and country.lower() == f_country.lower():
-            return file
+            matched_files.append(text_file)
+
+    if len(matched_files) == 0:
+        return None
+
+    return matched_files
 
 
 def _check_sources_needs_shift(sources: pd.DataFrame) -> bool:

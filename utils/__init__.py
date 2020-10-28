@@ -2,6 +2,7 @@
 from .utils import (
     RAW_DATA_FOLDER,
     CLEAN_DATA_FOLDER,
+    CLEAN_FULL_DATA_FOLDER,
     SOURCES_COLUMNS
 )
 
@@ -13,7 +14,7 @@ from .utils import (
     get_text_folders,
     get_text_files,
     read_sources_file,
-    get_text_file_path,
+    get_text_file_paths,
     read_text_file,
     get_report_folder,
     get_report_name,
