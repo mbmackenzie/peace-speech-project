@@ -75,3 +75,23 @@
   - Determine % of articles that contain lexicon words?
 - Interested in domestic articles, not international
 - **Priority**: WF analysis
+
+## 11/3/2020 - Saurav + Philippe
+
+- **Elaborate on README** - add details with what folder does what, etc...
+- Evaluation of cleaning:
+  - Doc2Vec - would need to train, probably don't have time for this
+  - N-gram does a good enough job
+- Identifing foreign articles
+  - Supervised learning - need annotated set
+  - Unsupervised
+    - Topic modeling
+    - Clustering
+  - Frequency analysis - does the article metion domestic country or cities?
+- Data Management
+  - Use a database
+    - NoSQL: DynamoDB, MongoDB
+    - SQL: MySQL
+    - Saurav will provide recommendations for database creation and security
+    - Maybe we use GCP to host since we have $100
+- Write models in a class structure for reusability
