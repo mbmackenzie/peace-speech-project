@@ -45,16 +45,23 @@ def format_month(month: int) -> str:
     return f"{month:02d}"
 
 
-def get_sources_files() -> List[str]:
-    return glob.glob(os.path.join(RAW_DATA_FOLDER, "*sources*.txt"))
+def get_sources_files(path: str = None) -> List[str]:
+    if not path:
+        path = RAW_DATA_FOLDER
+    return glob.glob(os.path.join(path, "*sources*.txt"))
 
 
-def get_text_folders() -> List[str]:
-    return glob.glob(os.path.join(RAW_DATA_FOLDER, "*/"))
+def get_text_folders(path: str = None) -> List[str]:
+    if not path:
+        path = RAW_DATA_FOLDER
+    return glob.glob(os.path.join(path, "*/"))
 
 
-def get_text_files(folder="*") -> List[str]:
-    return glob.glob(os.path.join(RAW_DATA_FOLDER, folder, "*.txt"))
+def get_text_files(path: str = None, folder: str = "*") -> List[str]:
+    if not path:
+        path = RAW_DATA_FOLDER
+
+    return glob.glob(os.path.join(path, folder, "*.txt"))
 
 
 def read_sources_file(file_path: str, clean=True) -> pd.DataFrame:
@@ -71,18 +78,21 @@ def read_sources_file(file_path: str, clean=True) -> pd.DataFrame:
     return sources
 
 
-def get_text_file_paths(text_folders: List[str], year: int, month: int, country: str) -> str:
+def get_text_file_paths(text_folders: List[str], year: int, month: int, country: str, path: str = None) -> str:
+    if not path:
+        path = RAW_DATA_FOLDER
+
     folder = _match_folder(text_folders, year, month,
                            path_cleaner=_get_last_path_element)
 
-    text_files = get_text_files(folder=folder)
+    text_files = get_text_files(path=path, folder=folder)
     file_names = _match_file(text_files, year, month, country,
                              path_cleaner=_get_last_path_element)
 
     if not file_names:
         return None
 
-    return [os.path.join(RAW_DATA_FOLDER, folder, file_name)
+    return [os.path.join(path, folder, file_name)
             for file_name in file_names]
 
 
@@ -160,15 +170,14 @@ def export_report(report: pd.Series, path=None, execute=True) -> str:
     # write the file if execute
     if execute:
         with codecs.open(f"{full_path}/{file_name}", "w", "ISO-8859-1") as f:
-            if not pd.isna(report.text):
-                id_number = str(report.id) if not pd.isna(report.id) else ""
-                title = report.title if not pd.isna(report.title) else ""
-                website = report.website if not pd.isna(report.title) else ""
-                url = report.url if not pd.isna(report.url) else ""
-                f.writelines([id_number, "\n",
-                              title, "\n",
-                              website, "\n",
-                              url, "\n\n", report.text])
+            id_number = str(report.id) if not pd.isna(report.id) else ""
+            title = report.title if not pd.isna(report.title) else ""
+            website = report.website if not pd.isna(report.title) else ""
+            url = report.url if not pd.isna(report.url) else ""
+            f.writelines([id_number, "\n",
+                          title, "\n",
+                          website, "\n",
+                          url, "\n\n", report.text])
             f.close()
 
     return os.path.join(folder, file_name)

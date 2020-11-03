@@ -319,6 +319,9 @@ sampling %>%
 
 ```{r}
 sampling %>%
+  summarise(sum(total_articles), 
+            sum(sampled_articles))
+sampling %>%
   group_by(country, year) %>%
   summarise(`Original` = sum(total_articles),
             `Sampled` = sum(sampled_articles)) %>%
@@ -341,48 +344,34 @@ sampling %>%
          `Sampled` = sampled_articles) %>%
   gather(type, num_articles, `Original`, `Sampled`) %>%
   ggplot(aes(num_articles)) + 
-  geom_histogram(bins = 20) + 
+  geom_histogram(bins = 30, center = TRUE) + 
   facet_wrap(~ type, scales = "free", nrow = 2) + 
   scale_x_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) +
   scale_y_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) + 
   labs(title = "Comparison of distibution of articles from publishers in the US, 2016",
        x = "Number of Articles",
        y = "Count")
-```
 
-```{r}
-sampled <- read_csv("data/sampled_articles.csv")
-
-sampled.errors <- sampled %>%
-  filter(!is.na(id)) %>%
-  group_by(country, year, publisher, total_articles, sampled_articles, articles_found) %>%
-  summarise(articles_copied = n()) %>%
+sampling %>%
+  mutate(country_name = countrycode(country, "iso2c", "country.name"),
+         display = glue::glue("{ country_name } ({ country })"),
+         society = get_society_cat(country_name)) %>%
+  mutate(society = factor(society, c("Peaceful", "Neutral","Non-Peaceful"))) %>%
+  group_by(society, year) %>%
+  summarise(total_articles = sum(total_articles),
+            sampled_articles = sum(sampled_articles)) %>%
   ungroup() %>%
-  mutate(found_all_articles = total_articles == articles_found,
-         copied_correct_amount = sampled_articles == articles_copied)
-
-sampled.errors %>%
-  count(found_all_articles, copied_correct_amount) %>%
-  mutate(pct = n / sum(n))
-
-sampled.errors %>%
-  filter(articles_copied > sampled_articles)
-
-sampled %>%
-  filter(country == "AU", year == 2016, publisher == "9Honey") %>%
-  count(id)
-  View()
+  ggplot(aes(society, fill = society)) + 
+  geom_col(aes(y = sampled_articles)) + 
+  scale_y_continuous(breaks = scales::pretty_breaks(), labels = scales::label_comma()) + 
+  scale_fill_manual(values = c("#6db7f7", "#36CB8A", "#FF5A59")) + 
+  labs(title = "Number of articles sampled from each type of society",
+       x = "Year",
+       y = "Number of Articles") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10))
   
-sampled %>%
-  group_by(id) %>%
-  mutate(duplicate_id = n() > 1) %>%
-  filter(duplicate_id) %>%
-  count(country, year, publisher)
-
-sampled %>% 
-  filter(country == "CA", year == 2013, publisher == "Victoria Times Colonist")
 ```
-
 
 
 

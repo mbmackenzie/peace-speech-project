@@ -9,7 +9,7 @@ data/clean*/*/*/*[.csv, .txt]
 data/*/*/
 
 *.csv
-data/clean.zip
+data/*.zip
 !data/file_lookup.csv
 !data/summary_stats.csv
 

@@ -51,3 +51,27 @@
   - Phillipe: subsample later years to match volume from earlier year.
 - Sensitivity analysis around noise removal?
   - don't need rigorous statistics, but maybe an analysis of one publisher. Include top ngrams removed in report. Sanity check that we are not overkilling words.
+
+## 10/28/2020 - Weekly Team
+
+- Presented sampling procedure
+  - Sampled ~1.5 million articles from ~17 million
+  - Uploaded sample data to ~6GB, shared on google drive
+- Need to check distribution of peaceful/neutral/in-confilct countries for sampled data.
+- Next Steps:
+  - Clean text thoroughly
+  - Word Freq analysis
+  - Topic Modeling
+  - Utilize word vectors for contextual modeling
+- Next Goal from team:
+  - After validating current lexicon, begin extending the lexicon
+- What was the standard for choosing lexicon?
+  - Started by looking at glossaries, manually sorted them into positive/negative peace
+  - Peace linguist offered more terms
+  - Small version of text analysis from anthropological and academic articles, manual sorting
+- When people talk about peace, often about the *lack of conflict*
+  - Apply all 3 lexicons in WF analayis
+- Worried that the words in lexicon may not show up in articles
+  - Determine % of articles that contain lexicon words?
+- Interested in domestic articles, not international
+- **Priority**: WF analysis
