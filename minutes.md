@@ -117,7 +117,8 @@
   - 2. Classifier on whether an article is from peaceful, non-peaceful, neutral (or on which country it is from)
     - method discussed:  Given the labels (Use country peaceful labels as labels for articles), use transfer learning and transformer models to build one.
     - objective: to find out whether there is a boundary that classify the peaceful, non-peaceful, neutral nation
-    - 
+- Calculate the distance between lexicons from peace, conflict, resilence
+  - Train word vector (word2vec: either CBOW, Skip-gram), embed each lexicons and perform clustering
   
 
   
