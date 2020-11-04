@@ -108,9 +108,16 @@
 - Look at the data and see what shows up, find new lexicon words
 - Zipf's Law, investigate ways to compare distributions of words
 - Classifier - what type of a country does a new article come from.
-  - Use country peaceful labels as labels for articles
   - Use full article text and embeddings to find boundries between peaceful/non...
     - We are interested in things like, "canadian journalists write about confilct fundementally differently"
   - Maybe use other article characteristics as well
+  
+  - 1. Classifier on whether an article is from the source or not
+    - method: Use Named-Entity-Recognition (NER) to retrieve the location names, check the ratio of the source nation, and determine whether it is from the source or not
+  - 2. Classifier on whether an article is from peaceful, non-peaceful, neutral (or on which country it is from)
+    - method discussed:  Given the labels (Use country peaceful labels as labels for articles), use transfer learning and transformer models to build one.
+    - objective: to find out whether there is a boundary that classify the peaceful, non-peaceful, neutral nation
+    - 
+  
 
   
