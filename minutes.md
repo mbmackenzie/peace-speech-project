@@ -95,3 +95,22 @@
     - Saurav will provide recommendations for database creation and security
     - Maybe we use GCP to host since we have $100
 - Write models in a class structure for reusability
+
+## 11/4/2020 - Biweekly Meeting
+
+- Weekly Summary: subsampled, lematization, stopwords done. Began WF analysis.
+- Peace is harder to measure than violence. Measuring casualties and arrests is easier then mundane peace.
+  - The less interesting words in peace lexicon showing up are still valuable
+- Need more analysis and conclusions from WF analysis.
+  - Bucket words by lexicon
+  - Score countries as %positve - %negative lexicons
+  - Investigate with/without filtering articles that talk about foreign nations
+- Look at the data and see what shows up, find new lexicon words
+- Zipf's Law, investigate ways to compare distributions of words
+- Classifier - what type of a country does a new article come from.
+  - Use country peaceful labels as labels for articles
+  - Use full article text and embeddings to find boundries between peaceful/non...
+    - We are interested in things like, "canadian journalists write about confilct fundementally differently"
+  - Maybe use other article characteristics as well
+
+  
