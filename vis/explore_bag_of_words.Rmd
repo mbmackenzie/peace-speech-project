@@ -1,0 +1,225 @@
+---
+title: "Exploring Bag Of Words"
+author: "Matt Mackenzie"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidytext)
+library(broom)
+library(countrycode)
+library(ggthemes)
+
+theme_set(theme_gdocs())
+```
+
+## Get the data
+
+```{r}
+countries.peaceful <- c("New Zealand", "Canada", "Ireland", "Australia", "United Kingdom", "Singapore")
+countries.non_peaceful <- c("Kenya", "Zimbabwe", "Bangladesh", "Pakistan", "Nigeria", "Tanzania")
+
+get_society_cat <- Vectorize(function(country) {
+  if (country %in% countries.peaceful) {
+    return("Peaceful")
+  } else if (country %in% countries.non_peaceful) {
+    return("Non-Peaceful")
+  } else {
+    return("Neutral")
+  }
+})
+
+read_word_counts <- function(country) {
+  file_path <- sprintf("data/word_counts/%s.csv", country)
+  read_csv(file_path) %>%
+    select(-1, -Original_Term) %>%
+    rename(country = nation, lexicon = label) %>%
+    janitor::clean_names() %>%
+    mutate(country_name = countrycode(country, "iso2c", "country.name"),
+           society = get_society_cat(country_name), 
+           society = factor(society, c("Peaceful", "Neutral","Non-Peaceful"))) %>%
+    select(society, country_name, country, lexicon, term, count)
+}
+
+countries <- sapply(
+  list.files("data/word_counts/"), 
+  substr, start = 1, stop = 2, 
+  USE.NAMES = FALSE
+)
+
+word_counts <- bind_rows(lapply(countries, read_word_counts))
+```
+
+```{r}
+summary <- word_counts %>%
+  filter(lexicon != "resilence") %>%
+  group_by(society, country, lexicon) %>%
+  summarise(total_count = sum(count)) %>%
+  mutate(pct_of_total = total_count / sum(total_count)) %>%
+  ungroup() %>%
+  select(-total_count) %>%
+  spread(lexicon, pct_of_total) %>%
+  mutate(score = peace - conflict) %>%
+  select(society, country, score) %>%
+  mutate(norm_score = scale(score))
+
+summary %>%
+  ggplot(aes(fct_reorder(country, norm_score), norm_score, fill = society)) + 
+  geom_col() +
+  facet_wrap(~ society, nrow = 1, scales = "free_x") +
+  scale_fill_manual(values = c("#6db7f7", "#36CB8A", "#FF5A59")) + 
+  labs(title = "Peaceful Score by Country", 
+       subtitle = "Peaceful Score = Normalize(%PositiveWords - %NegativeWords)", 
+       x = "", 
+       y = "Peaceful Score") +
+  theme(legend.position = "none")
+
+summary %>%
+  ggplot(aes(society, norm_score)) + 
+  geom_boxplot() + 
+  labs(title = "Distribution of Peaceful Scores", 
+       subtitle = "Peaceful Score = Normalize(%PositiveWords - %NegativeWords)", 
+       x = "", 
+       y = "Peaceful Score") +
+  theme(legend.position = "none")
+
+fit.anova <- summary %>%
+  aov(norm_score ~ society, data = .)
+
+summary(fit.anova)
+```
+
+```{r}
+comps <- expand.grid(unique(summary$society), unique(summary$society), "score")
+
+comps$pval <- apply(comps, 1, function(x) {
+  t.test(summary[summary$society==x[1], x[3]], summary[summary$society==x[2], x[3]])$p.value 
+} )
+
+comps %>%
+  rename(x = 1, y = 2) %>%
+  select(-3) %>%
+  filter(x != y) %>%
+  arrange(pval) %>%
+  filter(row_number() %% 2 == 0) %>%
+  knitr::kable()
+```
+
+```{r}
+text_sample <- read_csv("data/small_sample_text.csv")
+# lex.positive
+
+get_lexicon <- function(name) {
+  file_name <- sprintf("lexicon_list/enh_%s_lexicon.xlsx", name)
+  readxl::read_xlsx(file_name, col_names = c("x1", "term", "x3", "x4")) %>%
+    select(term) %>%
+    mutate(lexicon = name)
+}
+
+lexicon <- bind_rows(lapply(c("peace", "conflict"), get_lexicon))
+```
+
+```{r}
+get_num_words <- Vectorize(function(x) { sapply(strsplit(x, " "), length) })
+
+country_lookup <- text_sample %>%
+  count(country) %>%
+  select(-n) %>%
+  mutate(country_name = countrycode(country, "iso2c", "country.name"),
+         society = factor(get_society_cat(country_name)))
+
+
+ngram_lexicon <- text_sample %>%
+  left_join(country_lookup, by = "country") %>%
+  select(society, country, year, id, text) %>%
+  mutate(total_words = get_num_words(text)) %>%
+  unnest_ngrams(term, text, n_min = 1, n = 3) %>%
+  inner_join(lexicon, by = "term")
+
+summary.new <- ngram_lexicon %>%
+  ungroup() %>%
+  count(society, country, id, total_words, lexicon) %>%
+  mutate(pct = n / total_words) %>%
+  ungroup() %>%
+  select(-n) %>%
+  spread(lexicon, pct) %>%
+  mutate(score = peace - conflict,
+         norm_score = scale(score))
+
+summary.new <- ngram_lexicon %>%
+  ungroup() %>%
+  count(society, country, id, total_words, lexicon) %>%
+  spread(lexicon, n) %>%
+  group_by(society, country) %>%
+  summarise(total_words = sum(total_words), 
+            conflict = sum(conflict, na.rm = TRUE), 
+            peace = sum(peace, na.rm = TRUE)) %>%
+  gather(lexicon, n, conflict, peace) %>%
+  mutate(pct = n / total_words) %>%
+  ungroup() %>%
+  select(-n) %>%
+  spread(lexicon, pct) %>%
+  mutate(score = peace - conflict,
+         norm_score = scale(score))
+
+summary.new %>%
+  ggplot(aes(society, norm_score)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Peaceful Scores",
+       subtitle = "Peaceful Score = Normalize(%PositiveWords - %NegativeWords)",
+       x = "",
+       y = "Peaceful Score") +
+  theme(legend.position = "none")
+
+fit.anova <- summary.new %>%
+  aov(norm_score ~ society, data = .)
+
+summary(fit.anova)
+
+comps <- expand.grid(unique(summary.new$society), unique(summary.new$society), "score")
+
+comps$pval <- apply(comps, 1, function(x) {
+  t.test(
+    summary.new[summary.new$society==x[1], x[3]],
+    summary.new[summary.new$society==x[2], x[3]]
+  )$p.value
+})
+
+comps %>%
+  rename(x = 1, y = 2) %>%
+  select(-3) %>%
+  filter(x != y) %>%
+  arrange(pval) %>%
+  filter(row_number() %% 2 == 0) %>%
+  knitr::kable()
+```
+
+```{r}
+by_year_summary <- ngram_lexicon %>%
+  ungroup() %>%
+  count(society, country, year, lexicon) %>%
+  group_by(society, country, year) %>%
+  mutate(pct = n / sum(n)) %>%
+  ungroup() %>%
+  select(-n) %>%
+  spread(lexicon, pct) %>%
+  mutate(score = peace - conflict, 
+         norm_score = scale(score))
+
+by_year_summary %>%
+  ggplot(aes(year, norm_score, fill = society)) + 
+  geom_col() + 
+  facet_wrap(~ country) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  scale_fill_manual(values = c("#6db7f7", "#36CB8A", "#FF5A59")) + 
+  theme(legend.position = "top", 
+        legend.direction = "horizontal")
+```
+
