@@ -112,13 +112,22 @@
     - We are interested in things like, "canadian journalists write about confilct fundementally differently"
   - Maybe use other article characteristics as well
   
-  - 1. Classifier on whether an article is from the source or not
-    - method: Use Named-Entity-Recognition (NER) to retrieve the location names, check the ratio of the source nation, and determine whether it is from the source or not
-  - 2. Classifier on whether an article is from peaceful, non-peaceful, neutral (or on which country it is from)
-    - method discussed:  Given the labels (Use country peaceful labels as labels for articles), use transfer learning and transformer models to build one.
-    - objective: to find out whether there is a boundary that classify the peaceful, non-peaceful, neutral nation
+    1. Classifier on whether an article is from the source or not
+        - method: Use Named-Entity-Recognition (NER) to retrieve the location names, check the ratio of the source nation, and determine whether it is from the source or not
+    2. Classifier on whether an article is from peaceful, non-peaceful, neutral (or on which country it is from)
+        - method discussed:  Given the labels (Use country peaceful labels as labels for articles), use transfer learning and transformer models to build one.
+        - objective: to find out whether there is a boundary that classify the peaceful, non-peaceful, neutral nation
+
 - Calculate the distance between lexicons from peace, conflict, resilence
   - Train word vector (word2vec: either CBOW, Skip-gram), embed each lexicons and perform clustering
   
+## 11/10/2020 - Saurav
 
-  
+- Word embedding techniques to find new key lexicon words
+  - find nearest words in vector space to our current lexicon words
+- Ivestigate variants of Word2Vec models
+- Mess with parameter spaces of Word2Vec
+  - do we sacrifice performance for speed?
+    - visually inspect clusters
+    - find a clustering metric
+- May improve embeddings if we include sentence segmentation
