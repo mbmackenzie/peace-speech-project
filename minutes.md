@@ -69,7 +69,7 @@
   - Started by looking at glossaries, manually sorted them into positive/negative peace
   - Peace linguist offered more terms
   - Small version of text analysis from anthropological and academic articles, manual sorting
-- When people talk about peace, often about the *lack of conflict*
+- When people talk about peace, often about the _lack of conflict_
   - Apply all 3 lexicons in WF analayis
 - Worried that the words in lexicon may not show up in articles
   - Determine % of articles that contain lexicon words?
@@ -93,7 +93,7 @@
     - NoSQL: DynamoDB, MongoDB
     - SQL: MySQL
     - Saurav will provide recommendations for database creation and security
-    - Maybe we use GCP to host since we have $100
+    - Maybe we use GCP to host since we have \$100
 - Write models in a class structure for reusability
 
 ## 11/4/2020 - Biweekly Meeting
@@ -108,17 +108,53 @@
 - Look at the data and see what shows up, find new lexicon words
 - Zipf's Law, investigate ways to compare distributions of words
 - Classifier - what type of a country does a new article come from.
+
   - Use full article text and embeddings to find boundries between peaceful/non...
     - We are interested in things like, "canadian journalists write about confilct fundementally differently"
   - Maybe use other article characteristics as well
-  
-  - 1. Classifier on whether an article is from the source or not
-    - method: Use Named-Entity-Recognition (NER) to retrieve the location names, check the ratio of the source nation, and determine whether it is from the source or not
-  - 2. Classifier on whether an article is from peaceful, non-peaceful, neutral (or on which country it is from)
-    - method discussed:  Given the labels (Use country peaceful labels as labels for articles), use transfer learning and transformer models to build one.
-    - objective: to find out whether there is a boundary that classify the peaceful, non-peaceful, neutral nation
+
+    1. Classifier on whether an article is from the source or not
+       - method: Use Named-Entity-Recognition (NER) to retrieve the location names, check the ratio of the source nation, and determine whether it is from the source or not
+    2. Classifier on whether an article is from peaceful, non-peaceful, neutral (or on which country it is from)
+       - method discussed: Given the labels (Use country peaceful labels as labels for articles), use transfer learning and transformer models to build one.
+       - objective: to find out whether there is a boundary that classify the peaceful, non-peaceful, neutral nation
+
 - Calculate the distance between lexicons from peace, conflict, resilence
   - Train word vector (word2vec: either CBOW, Skip-gram), embed each lexicons and perform clustering
-  
 
-  
+## 11/10/2020 - Saurav
+
+- Word embedding techniques to find new key lexicon words
+  - find nearest words in vector space to our current lexicon words
+- Ivestigate variants of Word2Vec models
+- Mess with parameter spaces of Word2Vec
+  - do we sacrifice performance for speed?
+    - visually inspect clusters
+    - find a clustering metric
+- May improve embeddings if we include sentence segmentation
+
+## 11/11/2020 - Weekly Team
+
+- Possible reinbursement for Colab Pro
+- "Peace Metric" not giving the kind of results we want.
+  - i.e., GB score too low, TZ score too high
+- Don't use "Neutral" use something like "Medium"
+- Resilliance Lexicon - factors used to control violence, descrimination...
+- Possible Issues
+  - Country classification might be off
+    - We are testing to see if the lexicosns are working or not.
+    - Confident in categorization, grouped using 5 different indices.
+  - The lexicons might not be working
+    - Censorship could be leading to non-peaceful countries appearing more peaceful in media
+- Thoughts on new goals
+  - Expanding the lexicons
+    - Same as what Saurav said, use current lexicon words and find closest word vectors to those and find new words.
+  - Domestic v International News
+    - Does the article mention the publishing country?
+    - Don't do this yet!
+- **End Goals**
+  - We want to see if highly peaceful/nonpeaceful will differ in the kinds of language present in their society. (Print journalism right now)
+    - Media allows for dynamic monitoring, where other indices do not
+  - Revise lexicons so they become better predictors
+  - Create a metric, and build a dashboard to see realtime assessment of how people are talking to eachother in different places.
+  - **Where we currently are: "Does language help us differentiate these countries, and what are the lexicons"**
