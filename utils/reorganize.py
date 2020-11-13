@@ -11,6 +11,10 @@ import pandas as pd
 
 from slugify import slugify
 
+from .common import (
+    RAW_DATA_FOLDER
+)
+
 # from utils.clean import clean_text
 
 
@@ -19,9 +23,7 @@ def clean_text(text: str) -> str:
 
 
 # CONSTANTS
-RAW_DATA_FOLDER = os.path.join("data", "raw")
-CLEAN_DATA_FOLDER = os.path.join("data", "clean")
-CLEAN_FULL_DATA_FOLDER = os.path.join("data", "clean_full")
+
 
 SOURCES_COLUMNS = [
     "id",
