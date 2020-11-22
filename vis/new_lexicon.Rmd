@@ -20,7 +20,6 @@ theme_set(theme_gdocs())
 ```{r}
 data <- read_csv("data/word_frequencies.csv")
 
-  
 data %>%
   filter(n_synnouns == 0) %>%
   group_by(society) %>%
@@ -62,8 +61,6 @@ words <- data %>%
   ungroup() %>%
   group_by(word) %>%
   filter(n_distinct(society) == 1)
-
-
 ```
 
 
@@ -120,7 +117,6 @@ data %>%
        x = "LOG Rank",
        y = "LOG Frequency")
   
-
 lexicon %>%
   full_join(lexicon.new, by="term", suffix=c(".old", ".new")) %>%
   mutate(lexicon.old = ifelse(is.na(lexicon.old), FALSE, TRUE),

@@ -1,0 +1,144 @@
+---
+title: "Full Lexicon Analysis"
+author: "Matt Mackenzie"
+date: "11/22/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(broom)
+
+library(ggthemes)
+theme_set(theme_gdocs())
+
+no_legend <- theme(legend.position = "none")
+legend_top <- theme(legend.position = "top", 
+                    legend.direction = "horizontal")
+```
+
+```{r}
+data <- read_csv("data/word_frequencies_grouped.csv")
+library(viridis)
+
+summary <- data %>%
+  filter(n_synnouns == 0) %>%
+  select(society, country, year, word, freq) %>%
+  group_by(word) %>%
+  filter(n_distinct(society) == 1) %>%
+  group_by(society, country, year) %>%
+  top_n(5, freq) %>%
+  group_by(country, year) %>%
+  mutate(norm_freq = scale(freq)) %>%
+  ungroup()
+
+summary %>%
+  group_by(society) %>%
+  summarise(num_words = n_distinct(word)) %>%
+  ggplot(aes(society, num_words, fill = society)) + 
+  geom_col() + 
+  no_legend + 
+  labs(title = "How many unique words are used in each society?", 
+       subtitle = "Top 5 most frequent words (removing most nouns, and words that appear in \nboth society classes) in each country/year.", 
+       x = "Society", 
+       y = "Number of Unique Words")
+  
+
+summary %>%
+  filter(society == "Peaceful") %>%
+  ggplot(aes(year, fct_reorder(word, norm_freq), fill = norm_freq)) + 
+  geom_tile() + 
+  facet_wrap(~ country, scales = "free_y") + 
+  scale_fill_viridis() + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(title = "How are the most frequent words changing in peaceful country by year?", 
+       subtitle = "Top 5 most frequent words (removing most nouns, and words that appear in both society classes) in each country/year.", 
+       x = "Year", 
+       y = "", 
+       fill = "Norm. WF", 
+       caption = "Norm. WF = Normalized Word Frequency. Normalization happens at the country/year level.") + 
+  theme(axis.text = element_text(size = 10))
+
+summary %>%
+  filter(society == "Nonpeaceful") %>%
+  ggplot(aes(year, fct_reorder(word, norm_freq), fill = norm_freq)) + 
+  geom_tile() + 
+  facet_wrap(~ country, scales = "free_y") + 
+  scale_fill_viridis() + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(title = "How are the most frequent words changing in nonpeaceful country by year?", 
+       subtitle = "Top 5 most frequent words (removing most nouns, and words that appear in both society classes) in each country/year.", 
+       x = "Year", 
+       y = "", 
+       fill = "Norm. WF", 
+       caption = "Norm. WF = Normalized Word Frequency. Normalization happens at the country/year level.") + 
+  theme(axis.text = element_text(size = 10))
+```
+
+```{r}
+library(countrycode)
+
+
+countries.peaceful <- c("New Zealand", "Canada", "Ireland", "Australia", "United Kingdom", "Singapore")
+countries.non_peaceful <- c("Kenya", "Zimbabwe", "Bangladesh", "Pakistan", "Nigeria", "Tanzania")
+
+get_society_cat <- Vectorize(function(country) {
+  if (country %in% countries.peaceful) {
+    return("Peaceful")
+  } else if (country %in% countries.non_peaceful) {
+    return("Non-Peaceful")
+  } else {
+    return("Other")
+  }
+})
+
+tf <- read_csv("data/lexicon_tf_by_country_year.csv") %>%
+  mutate(country_name = countrycode(country, "iso2c", "country.name"),
+         society = get_society_cat(country_name))
+
+tf %>%
+  group_by(society, lexicon, version, term) %>%
+  summarise(n = sum(n)) %>%
+  ungroup() %>%
+  group_by(society) %>%
+  top_n(100, n) %>%
+  ungroup() %>%
+  count(society, lexicon, version) %>%
+  arrange(society, desc(n))
+```
+
+```{r}
+tf %>%
+  distinct(term, lexicon, version) %>%
+  View()
+  filter(version == "old", lexicon != "resilience") %>%
+  group_by(term)
+  filter(n_distinct(lexicon) == 1) %>%
+  ungroup() %>%
+  group_by(society, country, lexicon) %>%
+  summarise(n = sum(n)) %>%
+  mutate(pct = n / sum(n)) %>%
+  ungroup() %>%
+  select(-n) %>%
+  spread(lexicon, pct) %>%
+  mutate(score = peace - conflict, 
+         norm_score = scale(score)) %>% 
+  mutate(society = factor(society, levels = c("Peaceful", "Other", "Non-Peaceful"))) %>%
+  filter(!is.na(society)) %>%
+  ggplot(aes(fct_reorder(country, norm_score), norm_score, fill = society)) + 
+  geom_col() + 
+  facet_wrap(~ society, nrow = 1, scales = "free_x") + 
+  scale_fill_manual(values = c("#6db7f7", "#36CB8A", "#FF5A59")) + 
+  theme(legend.position = "top", 
+        legend.direction = "horizontal") + 
+  labs(title = "Peaceful Score by Country. Original lexicon only.",
+       x = "", 
+       y = "Peaceful Score")
+```
+
