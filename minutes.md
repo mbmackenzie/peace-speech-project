@@ -158,3 +158,12 @@
   - Revise lexicons so they become better predictors
   - Create a metric, and build a dashboard to see realtime assessment of how people are talking to eachother in different places.
   - **Where we currently are: "Does language help us differentiate these countries, and what are the lexicons"**
+
+## Biweekly Meeting - 11/18/2020
+
+- Investigate feature importances from Doc2Vec model
+- Compare RNN words to top frequency words.
+- Continue with next steps...
+- Send report before due on Tuesday for feed back
+- No meeting next week, back on 12/2
+- Compare top words by country/year
