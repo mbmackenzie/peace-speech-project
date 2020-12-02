@@ -5,7 +5,7 @@
 - Find patterns for unrelated text in each article providers by looking at common patterns in first few words of paragraph and header tags. (Matt to work more on this)
 - Find patterns of noisy text by new source. Focus sources that contribute 25% of the data
 
-## 10/6/2020 - Bi-Weekly Team
+## 10/6/2020 - Biweekly Team
 
 - We got the data - two types of files:
   1. sources and
@@ -167,3 +167,12 @@
 - Send report before due on Tuesday for feed back
 - No meeting next week, back on 12/2
 - Compare top words by country/year
+
+## Biweekly Meeting - 12/2/2020
+
+- Getting good press!
+- **Last meeting 12/9** for final findings... Send report to team for offline review.
+- Extract words from attention layer, compare with words from FA. 
+- Is list of words enough or do individual words have predictive power alone?
+  - Classification model just using vocab words?
+- There is a conference in July, Allegra will send details if we wish to apply. 
