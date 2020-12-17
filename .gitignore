@@ -8,6 +8,8 @@ data/clean*/*/*/*[.csv, .txt]
 
 data/*/*/
 
+Final Presentation/
+
 *.csv
 data/*.zip
 !data/file_lookup.csv
