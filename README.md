@@ -5,6 +5,8 @@ Jinwoo Jung (jj2762@columbia.edu), Hojin Lee (hl3328@columbia.edu),
 Hyuk Joon Kwon (hk3084@columbia.edu), Matt Mackenzie (mbm2228@columbia.edu),
 Tae Yoon Lim (tl2968@columbia.edu)
 
+Youtube Link: https://www.youtube.com/watch?v=hTtMzFsc-9A&feature=youtu.be
+
 ## Project Overview
 
 As the world gets more polarized, one of the biggest challenges we face hate speech. The harm of hate speech is an active area of research, and the general consensus in the recent literature is that hate speech tends to cause harm to societies. However, there was not much attention to the other side of the story: peace speech.
