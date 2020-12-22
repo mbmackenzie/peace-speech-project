@@ -1,5 +1,5 @@
 # Peace Speech Project
-Columbia University - Data Science Institute Capstone
+Columbia University - Data Science Institute - FALL 2020 Capstone Project
 
 Jinwoo Jung (jj2762@columbia.edu), Hojin Lee (hl3328@columbia.edu),
 Hyuk Joon Kwon (hk3084@columbia.edu), Matt Mackenzie (mbm2228@columbia.edu),
