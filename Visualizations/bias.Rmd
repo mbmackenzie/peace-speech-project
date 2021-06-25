@@ -1,0 +1,86 @@
+---
+title: "Untitled"
+author: "Matt Mackenzie"
+date: "12/16/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(scales)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+library(WDI)
+summary_data <- read_csv("data/summary_stats.csv")
+
+summary <- summary_data %>%
+  mutate(country = ifelse(country == "UK", "GB", country)) %>%
+  group_by(country, publisher) %>%
+  summarise(tot_articles = sum(num_articles),
+            big_publisher = tot_articles > 1000) %>%
+  ungroup(publisher) %>%
+  summarise(tot_articles = sum(tot_articles), 
+            num_large_publishers = sum(big_publisher),
+            num_publishers = n(), .groups = "drop") %>%
+  mutate(pct_large_publishers = num_large_publishers / num_publishers, 
+         country_name = countrycode::countrycode(country, "iso2c", "country.name"))
+
+gdp = WDI(indicator='NY.GDP.PCAP.KD', country=unique(summary$country), start=2015, end = 2015) %>%
+  select(country = iso2c, gdp = NY.GDP.PCAP.KD)
+
+plot1 <- summary %>%
+  left_join(gdp, by = "country") %>%
+  relocate(country_name) %>%
+  select(-num_large_publishers, -num_publishers) %>%
+  ggplot(aes(tot_articles, gdp)) + 
+  geom_point(show.legend = FALSE) + 
+  ggrepel::geom_text_repel(aes(label = country)) + 
+  scale_y_log10(labels = dollar_format(accuracy = 2)) + 
+  scale_x_log10(labels = comma) + 
+  stat_smooth(geom='line', method = "lm", se=FALSE,
+              lty = 2, size=1.3, alpha=0.7, color = "cyan2") + 
+  labs(title = "Countries that produce more articles tend to be wealthier.",
+       x = "Total # articles in 2015", 
+       y = "GDP per capita in 2015 (in 2011 $)") + 
+  ggthemes::theme_gdocs() + 
+  theme(title = element_text(size = 8))
+
+plot2 <- summary %>%
+  left_join(gdp, by = "country") %>%
+  relocate(country_name) %>%
+  select(-num_large_publishers, -num_publishers) %>%
+  ggplot(aes(pct_large_publishers, gdp)) + 
+  geom_point(show.legend = FALSE) + 
+  ggrepel::geom_text_repel(aes(label = country)) + 
+  scale_y_log10(labels = dollar_format(accuracy = 2)) + 
+  scale_x_continuous(labels = percent) + 
+  stat_smooth(geom='line', method = "lm", se=FALSE,
+              lty = 2, size=1.3, alpha=0.7, color = "cyan2") + 
+  labs(title = "Wealthier countries have a larger range of publisher sizes.",
+       x = "% big* publishers in 2015", 
+       y = NULL,
+       caption = "*Big publishers are publishers with more than 1000 articles from 2010-2020") + 
+  ggthemes::theme_gdocs() + 
+  theme(title = element_text(size = 8), 
+        axis.text.y = element_blank())
+
+cowplot::plot_grid(
+  plot1,
+  plot2,
+  nrow = 1, align="h"
+)
+
+read_csv("lexicons/lexicon.csv")
+```
+

@@ -1,11 +1,21 @@
-# Peace Speech Project
+# The Power of Peace Speech
 Columbia University - Data Science Institute - FALL 2020 Capstone Project
 
-Jinwoo Jung (jj2762@columbia.edu), Hojin Lee (hl3328@columbia.edu),
-Hyuk Joon Kwon (hk3084@columbia.edu), Matt Mackenzie (mbm2228@columbia.edu),
+**Team Members**<br>
+Jinwoo Jung (jj2762@columbia.edu)<br>
+Hojin Lee (hl3328@columbia.edu)<br>
+Hyuk Joon Kwon (hk3084@columbia.edu)<br> 
+Matt Mackenzie (mbm2228@columbia.edu)<br>
 Tae Yoon Lim (tl2968@columbia.edu)
 
-Youtube Link: https://www.youtube.com/watch?v=hTtMzFsc-9A&feature=youtu.be
+**Advisors**<br>
+Peter Coleman, Professor, Psychology and Education<br>
+Allegra Chen-carrel, Program Manager, The Sustaining Peace Project
+
+**Final Presentation**<br>
+Video: https://www.youtube.com/watch?v=hTtMzFsc-9A&feature=youtu.be<br>
+Deck: [The Power of Peace Speech.pdf](The%20Power%20of%20Peace%20Speech.pdf)
+
 
 ## Project Overview
 
@@ -45,7 +55,7 @@ We will be adding our final reports and poster as well towards the end of the se
 
 The [data](data) folder contains multiple folders that housed the different forms of our data at different times.
 
-- `original` contains teh full, non-processed data set separating into source files and text folders
+- `original` contains the full, non-processed data set separating into source files and text folders
 - `raw` contains the full, non-processed data set, orgainzed in a `COUNTRY/PUBLUSHER/YEAR` folder format.
 - `sample_raw` contains the non-processed files that we sampled from the full data, orgainzed in a `COUNTRY/PUBLUSHER/YEAR` folder format.
 - `clean` contains the cleaned data in the `COUNTRY/PUBLUSHER/YEAR` folder format.
@@ -54,22 +64,28 @@ For size and privacy reasons, the data is not stored on GitHub, but the folder a
 
 ### Lexicons
 
-The *lexicons* folder contains 3 excel files with the original lexicons we had to work with.
+The *Lexicons* folder contains 3 excel files with the original lexicons we had to work with.
 
-### Jupyter Notebooks
-
-There are a series of jupyter notebooks that are used to accomplish our analytical tasks. Some important ones are listed below.
+### Data Processing
 
 - "Clean Text Files - SAMPLE.ipynb" - This file acts as our way to reorganize the the 'original' data into the 'raw' format.
 - "Export Sampled Data.ipynb" - This file creates a representative sample of our data for eaiser use
 
-### Misc Folder
+### Analysis
+
+### Lexicon Validation
+
+#### Classification Models
+
+#### Lexicon Generation
+
+### Miscellaneous Folder
 
 This folder contains smaller tasks that we needed to accomplish. Things like validating our sampling procedure, experimenting, and other random tasks.
 
 ### Visualizations
 
-The *vis* folder contains python and R notebooks for generating visualizations.
+The *Visualizations* folder contains python and R notebooks for generating visualizations.
 
 ### Utility Functions and Tests
 

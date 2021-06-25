@@ -1,3 +1,0 @@
-1	5	20-10-09	US	Google	http://google.com	Google Search
-2	100	20-10-09	US	Amazon	http://amazon.com	Amazon Store
-

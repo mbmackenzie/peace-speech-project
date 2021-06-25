@@ -8,7 +8,7 @@ data/clean*/*/*/*[.csv, .txt]
 
 data/*/*/
 
-Final Presentation/
+The Power of Peace Speech.pptx
 
 *.csv
 data/*.zip
@@ -20,6 +20,7 @@ misc/cleaning_validation/*/
 .DS_Store
 *.Rproj*
 *.Rhistory*
+*.RData*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

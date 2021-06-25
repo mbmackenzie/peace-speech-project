@@ -1,0 +1,334 @@
+---
+title: "Full Lexicon Analysis"
+author: "Matt Mackenzie"
+date: "11/22/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidytext)
+library(broom)
+
+library(ggthemes)
+theme_set(theme_gdocs())
+
+no_legend <- theme(legend.position = "none")
+legend_top <- theme(legend.position = "top", 
+                    legend.direction = "horizontal")
+```
+
+```{r}
+data <- read_csv("data/word_frequencies_grouped.csv")
+library(viridis)
+
+data %>%
+  filter(n_synnouns == 0) %>%
+  select(society, country, year, word, freq) %>%
+  group_by(word) %>%
+  filter(n_distinct(society) == 1) %>%
+  group_by(society, country, year) %>%
+  top_n(5, freq) %>%
+  write.csv("top_5_words_by_year.csv", row.names = FALSE)
+
+summary <- data %>%
+  filter(n_synnouns == 0) %>%
+  select(society, country, year, word, freq) %>%
+  group_by(word) %>%
+  filter(n_distinct(society) == 1) %>%
+  group_by(society, country, year) %>%
+  top_n(5, freq) %>%
+  group_by(country, year) %>%
+  mutate(norm_freq = scale(freq)) %>%
+  ungroup()
+
+summary %>%
+  group_by(society) %>%
+  summarise(num_words = n_distinct(word)) %>%
+  ggplot(aes(society, num_words, fill = society)) + 
+  geom_col() + 
+  no_legend + 
+  labs(title = "How many unique words are used in each society?", 
+       subtitle = "Top 5 most frequent words (removing most nouns, and words that appear in \nboth society classes) in each country/year.", 
+       x = "Society", 
+       y = "Number of Unique Words")
+  
+
+summary %>%
+  filter(society == "Peaceful") %>%
+  ggplot(aes(year, fct_reorder(word, norm_freq), fill = norm_freq)) + 
+  geom_tile() + 
+  facet_wrap(~ country, scales = "free_y") + 
+  scale_fill_viridis() + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(title = "How are the most frequent words changing in peaceful country by year?", 
+       subtitle = "Top 5 most frequent words (removing most nouns, and words that appear in both society classes) in each country/year.", 
+       x = "Year", 
+       y = "", 
+       fill = "Norm. WF", 
+       caption = "Norm. WF = Normalized Word Frequency. Normalization happens at the country/year level.") + 
+  theme(axis.text = element_text(size = 10))
+
+summary %>%
+  filter(society == "Nonpeaceful") %>%
+  ggplot(aes(year, fct_reorder(word, norm_freq), fill = norm_freq)) + 
+  geom_tile() + 
+  facet_wrap(~ country, scales = "free_y") + 
+  scale_fill_viridis() + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(title = "How are the most frequent words changing in nonpeaceful country by year?", 
+       subtitle = "Top 5 most frequent words (removing most nouns, and words that appear in both society classes) in each country/year.", 
+       x = "Year", 
+       y = "", 
+       fill = "Norm. WF", 
+       caption = "Norm. WF = Normalized Word Frequency. Normalization happens at the country/year level.") + 
+  theme(axis.text = element_text(size = 10))
+```
+
+```{r}
+library(countrycode)
+
+countries.peaceful <- c("New Zealand", "Canada", "Ireland", "Australia", "United Kingdom", "Singapore")
+countries.non_peaceful <- c("Kenya", "Zimbabwe", "Bangladesh", "Pakistan", "Nigeria", "Tanzania")
+
+get_society_cat <- Vectorize(function(country) {
+  if (country %in% countries.peaceful) {
+    return("Peaceful")
+  } else if (country %in% countries.non_peaceful) {
+    return("Non-Peaceful")
+  } else {
+    return("Other")
+  }
+})
+
+tf <- read_csv("data/tf_by_country_by_year.csv") %>%
+  mutate(society = factor(society, levels = c("Peaceful", "Other", "Nonpeaceful"))) %>%
+  filter(map_dbl(term, nchar) > 2)
+
+top_lexicon_words_by_society <- tf %>%
+  group_by(society, lexicon, version, term) %>%
+  summarise(n = sum(n)) %>%
+  ungroup() %>%
+  group_by(society) %>%
+  top_n(100, n) %>%
+  arrange(society, desc(n))
+
+top_lexicon_words_by_society %>%
+  write.csv("top_words_by_society_all_lexicons.csv", row.names = FALSE)
+
+top_lexicon_words_by_society %>%
+  ungroup() %>%
+  count(society, lexicon, version) %>%
+  mutate(name = glue::glue("{ lexicon } - { version }"),
+         name = reorder_within(name, n, society)) %>%
+  ggplot(aes(name, n, fill = fct_rev(society))) + 
+  geom_col() + 
+  facet_wrap(~ fct_rev(society), scales = "free_y") + 
+  scale_x_reordered() + 
+  scale_fill_manual(values = c("#6db7f7", "#36CB8A", "#FF5A59")) + 
+  coord_flip() + 
+  theme(legend.position = "none") + 
+  labs(title = "What is the prominent lexicon in each society?",
+       subtitle = "Top 100 most frequent words from each society. Sample of 1 million articles.",
+       x = "Lexicon", 
+       y = "Number of Terms")
+```
+
+
+```{r}
+tf %>%
+  filter(lexicon != "resilience", version == "Term Frequency") %>%
+  group_by(lexicon, term) %>%
+  summarise(n = sum(n)) %>%
+  ungroup() %>%
+  group_by(lexicon) %>%
+  top_n(10, n) %>%
+  arrange(lexicon, desc(n)) %>%
+  View()
+
+tf %>%
+  filter(lexicon != "resilience", version == "Attention Layer") %>%
+  group_by(lexicon, term) %>%
+  summarise(n = sum(n)) %>%
+  ungroup() %>%
+  group_by(lexicon) %>%
+  top_n(10, n) %>%
+  arrange(lexicon, desc(n)) %>%
+  View()
+
+lexicon_from <- lexicon %>%
+  filter(lexicon != "resilience") %>%
+  distinct(lexicon, version, term) %>%
+  mutate(present = TRUE) %>%
+  pivot_wider(names_from = version, values_from = present, values_fill = FALSE) %>% 
+  janitor::clean_names() %>%
+  mutate(version = case_when(original & (term_frequency | attention_layer) ~ "Original", 
+                             term_frequency ~ "Term Frequency", 
+                             attention_layer ~ "Attention Layer",
+                             TRUE ~ "Original")) %>% 
+  select(lexicon, version, term)
+  
+tf %>%
+  filter(lexicon != "resilience") %>%
+  distinct(society, country, year, lexicon, term, n) %>%
+  group_by(lexicon, term) %>%
+  summarise(n = sum(n)) %>%
+  ungroup() %>%
+  group_by(lexicon) %>%
+  top_n(10, n) %>%
+  inner_join(lexicon_from, by = c("lexicon", "term")) %>%
+  arrange(lexicon, desc(n)) %>%
+  View()
+
+
+```
+
+```{r}
+
+make_peace_metric <- function(tbl) {
+  tbl %>%
+    group_by(society, country, lexicon) %>%
+    summarise(n = sum(n)) %>%
+    mutate(pct = n / sum(n)) %>%
+    ungroup() %>%
+    select(-n) %>%
+    spread(lexicon, pct) %>%
+    mutate(score = peace - conflict, 
+           norm_score = scale(score)) %>% 
+    filter(!is.na(society))
+}
+
+plot_peace_metric <- function(tbl, subtitle) {
+  tbl %>%
+    ggplot(aes(fct_reorder(country, norm_score), norm_score, fill = society)) + 
+    geom_col() + 
+    facet_wrap(~ society, nrow = 1, scales = "free_x") + 
+    scale_fill_manual(values = c("#6db7f7", "#36CB8A", "#FF5A59")) + 
+    theme(legend.position = "top", 
+          legend.direction = "horizontal") + 
+    labs(title = "Peace Metric by Country",
+         subtitle = subtitle,
+         x = NULL, 
+         y = "Peace Metric") + 
+    theme(plot.background=element_blank(), 
+        panel.background=element_blank(), 
+        panel.border=element_blank())
+}
+
+
+tf %>%
+  filter(version == "Original", lexicon != "resilience") %>%
+  make_peace_metric() %>%
+  plot_peace_metric("Original lexicon only") + 
+  no_legend
+  
+
+tf %>%
+  filter(version == "Term Frequency", lexicon != "resilience") %>%
+  make_peace_metric() %>%
+  plot_peace_metric("Term frequency lexicon only") + 
+  no_legend
+
+tf %>%
+  filter(version == "Attention Layer", lexicon != "resilience") %>%
+  make_peace_metric() %>%
+  plot_peace_metric("Attention layer lexicon only") + 
+  no_legend
+
+tf %>%
+  filter(lexicon != "resilience") %>%
+  make_peace_metric() %>%
+  plot_peace_metric("All lexicons combined") + 
+  no_legend
+
+tf %>%
+  filter(lexicon != "resilience") %>%
+  make_peace_metric() %>%
+  aov(norm_score ~ society, data = .) %>% 
+  summary()
+```
+
+
+```{r}
+library(widyr)
+library(igraph)
+library(ggraph)
+
+word_cors <- read_csv("data/sample_term_corr.csv")
+
+tf %>%
+  group_by(term) %>%
+  summarise(n = sum(n)) %>%
+  pull(n) %>%
+  quantile()
+
+nodes <- tf %>%
+  group_by(term) %>%
+  filter(sum(n) >= 1500, sum(n) < 30000, n_distinct(lexicon) == 1) %>%
+  ungroup() %>%
+  group_by(lexicon, term, society) %>%
+  summarise(n = sum(n)) %>%
+  mutate(pct_present = n / sum(n)) %>%
+  slice(which.max(pct_present)) %>%
+  ungroup()
+
+filtered_cors <- word_cors %>%
+  filter(!str_detect(term1, term2), !str_detect(term2, term1)) %>%
+  semi_join(select(nodes, term), by = c(term1 = "term")) %>%
+  semi_join(select(nodes, term), by = c(term2 = "term")) %>%
+  mutate(abs_corr = abs(corr)) %>%
+  arrange(desc(abs_corr))
+
+use_cors <- filtered_cors %>%
+  head(450)
+
+nodes.filterd <- nodes %>%
+  filter(term %in% use_cors$term1 | term %in% use_cors$term2) %>%
+  relocate(term)
+
+use_cors %>%
+  graph_from_data_frame(vertices = nodes.filterd) %>%
+  ggraph(layout = "fr") +
+  geom_edge_link() +
+  geom_node_point(aes(size = n * 1.1)) +
+  geom_node_point(aes(size = n, color = society)) +
+  geom_node_text(aes(label = name), repel = TRUE) +
+  scale_color_manual(values = c("#36CB8A", "#FF5A59", "#6db7f7")) + 
+  theme_gdocs() + 
+  theme(axis.line=element_blank(),
+        axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        plot.background=element_blank()) + 
+  labs(title = "Network of top word-pairs most used together in news articles",
+       subtitle = "Colored by the type of society the word appears most in; words that appear between 1,500 and 30,000 total times only;",
+       color = "Society Type", 
+       size = "Number of Appearences", 
+       caption = "Society Type: most prevelant type of society the word is found in. Number of Appearences: count of times the word appears across all societies")
+```
+
+
+```{r}
+lexicon <- read_csv("lexicons/lexicon.csv")
+
+lexicon %>%
+  mutate(present = TRUE) %>%
+  pivot_wider(names_from = version, values_from = present, values_fill = FALSE) %>%
+  janitor::clean_names() %>%
+  count(original, term_frequency, attention_layer) %>%
+  mutate_if(is.logical, factor) %>%
+  complete(original, term_frequency, attention_layer, fill = list(n = 0)
+```
+
