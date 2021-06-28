@@ -1,0 +1,121 @@
+---
+title: "Untitled"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(tidytext)
+library(broom)
+
+library(ggthemes)
+theme_set(theme_gdocs() + 
+            theme(panel.border = element_blank())) 
+
+no_legend <- theme(legend.position = "none")
+legend_top <- theme(legend.position = "top", 
+                    legend.direction = "horizontal")
+```
+
+```{r}
+library(countrycode)
+
+countries.peaceful <- c("New Zealand", "Canada", "Ireland", "Australia", "United Kingdom", "Singapore")
+countries.non_peaceful <- c("Kenya", "Zimbabwe", "Bangladesh", "Pakistan", "Nigeria", "Tanzania")
+
+get_society_cat <- Vectorize(function(country) {
+  if (country %in% countries.peaceful) {
+    return("Peaceful")
+  } else if (country %in% countries.non_peaceful) {
+    return("Non-Peaceful")
+  } else {
+    return("Other")
+  }
+})
+
+tf <- read_csv("data/tf_by_country_by_year.csv") %>%
+  mutate(society = factor(society, levels = c("Peaceful", "Other", "Nonpeaceful"))) %>%
+  filter(map_dbl(term, nchar) > 2)
+```
+
+```{r}
+library(widyr)
+library(igraph)
+library(ggraph)
+
+word_cors <- read_csv("data/sample_term_corr.csv")
+word_counts <- read_csv("misc/pw_unique_counts.csv") %>%
+  select(term1, term2, n)
+
+combined <- word_cors %>%
+  right_join(word_counts, by = c("term1", "term2"))
+
+lexicon <- read_csv("lexicons/lexicon.csv")
+```
+
+
+```{r}
+create_network <- function(lexicon_version, max_n = 250) {
+  
+  terms <- tf %>%
+    filter(if (lexicon_version == "All") TRUE else version == lexicon_version,
+           lexicon != "resilience") %>%
+    distinct(term, society, country, year, lexicon, n) %>%
+    group_by(term) %>%
+    filter(n_distinct(lexicon) == 1) %>%
+    ungroup() %>%
+    group_by(lexicon, term) %>%
+    summarize(n = sum(n), .groups = "drop")
+  
+  nodes <- terms %>%
+    filter(n >= quantile(n, .25), n <= quantile(n, .75))
+  
+  filtered_cors <- combined %>%
+    filter(!str_detect(term1, term2), !str_detect(term2, term1)) %>%
+    semi_join(select(nodes, term), by = c(term1 = "term")) %>%
+    semi_join(select(nodes, term), by = c(term2 = "term")) %>%
+    mutate(abs_corr = abs(corr)) %>%
+    arrange(desc(abs_corr)) %>%
+    rename(pw_n = n)
+  
+  use_cors <- filtered_cors %>%
+    head(max_n)
+  
+  nodes.filterd <- nodes %>%
+    filter(term %in% use_cors$term1 | term %in% use_cors$term2) %>%
+    relocate(term) %>%
+    mutate(lexicon = fct_recode(lexicon, Conflict = "conflict", Peace = "peace"))
+  
+  use_cors %>%
+    graph_from_data_frame(vertices = nodes.filterd) %>%
+    ggraph(layout = "fr") +
+    geom_edge_link(alpha = 0.6, aes(edge_width = pw_n)) +
+    geom_node_point(aes(size = n * 1.1)) +
+    geom_node_point(aes(size = n, color = lexicon)) +
+    geom_node_text(aes(label = name), repel = TRUE) +
+    scale_edge_width_continuous(range = c(.1, 1.6), guide = FALSE) + 
+    scale_size(guide = FALSE) + 
+    scale_color_manual(values = c("#FF5A59", "#6db7f7", "#36CB8A")) + 
+    theme_graph() + 
+    labs(title = "Network of top word-pairs most used together in news articles",
+         color = "Lexicon", 
+         edge_width = "Number of Co-Appearences",
+         size = "Number of Overall Appearences",
+         caption = "The size of the node corresponds to the number of times of that term appears; the width of the edge corresponds to the number of times the two terms connected by it appear together.")
+}
+
+create_network("Term Frequency") + 
+  labs(subtitle = "Term frequency versions only; words that appear in only one lexicon; very rare and common words removed. \nCo-appearence counts from sample of 250,000 articles")
+  
+create_network("Attention Layer") + 
+  labs(subtitle = "Attention layer versions only; words that appear in only one lexicon; very rare and common words removed. \nCo-appearence counts from sample of 250,000 articles")
+
+create_network("Original") + 
+  labs(subtitle = "Original versions only; words that appear in only one lexicon; very rare and common words removed. \nCo-appearence counts from sample of 250,000 articles")
+
+create_network("All") + 
+  labs(subtitle = "All versions; words that appear in only one lexicon; very rare and common words removed. \nCo-appearence counts from sample of 250,000 articles")
+```
+
